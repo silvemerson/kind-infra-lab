@@ -1,0 +1,18 @@
+version: "3"
+
+networks:
+  kind:
+    external: true
+services:
+  nfs-server:
+    image: itsthenetwork/nfs-server-alpine
+    container_name: nfs-server
+    privileged: true
+    ports:
+      - "2049:2049"
+    environment:
+      - SHARED_DIRECTORY=/nfs-data
+    volumes:
+      - ./nfs-data:/nfs-data
+    networks:
+      - kind
