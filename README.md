@@ -1,7 +1,5 @@
 # KIND + MetalLB + Nginx + NFS
 
-Olá pessoal, segue passao a passo de como provisionar o Kind, MetalLB, Nginx e NFS
-
 
 ## Pré-requisitos Técnicos para KIND + MetalLB + NGINX + NFS
 
