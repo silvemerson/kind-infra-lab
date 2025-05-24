@@ -1,0 +1,12 @@
+# Ignorar pastas de persistência
+nfs/nfs-data/
+
+# Ignorar arquivos temporários
+*.log
+*.tmp
+
+# Ignorar pastas do sistema e IDEs
+.vscode/
+.idea/
+.DS_Store
+
