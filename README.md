@@ -1,7 +1,7 @@
 # KIND + MetalLB + Nginx + NFS
 
 
-## Pré-requisitos Técnicos para KIND + MetalLB + NGINX + NFS
+## Pré-requisitos KIND + MetalLB + NGINX + NFS
 
 | Componente                            | Versão Recomendada      | Link Oficial                                                                 | Observações                                               |
 |-------------------------------------|------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------------|
