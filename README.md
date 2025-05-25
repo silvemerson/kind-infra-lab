@@ -14,7 +14,7 @@ Post para montar o ambiente: [EmersonLabs: Infra com Kind, NFS, MetalLB e Nginx 
 | **NFS Server (Docker container)** | Qualquer versão estável | [https://nfs-utils.sourceforge.net/](https://nfs-utils.sourceforge.net/)    | NFS server rodando em container Docker para armazenamento compartilhado. |
 | **NFS Client Provisioner**          | v4.0.13 ou superior    | [https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner) | Provisionador dinâmico para PVCs usando NFS.              |
          |
-
+![](desenho-infra.png)
 
 ### 1. KIND 
 
