@@ -1,5 +1,6 @@
 # KIND + MetalLB + Nginx + NFS
 
+Post para montar o ambiente: [EmersonLabs: Infra com Kind, NFS, MetalLB e Nginx ingress](https://emerson-silva.blog.br/posts/emersonlabs-kind-nfs-metallb-nginx/)
 
 ## Pré-requisitos KIND + MetalLB + NGINX + NFS
 
