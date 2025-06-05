@@ -10,3 +10,4 @@ nfs/nfs-data/
 .idea/
 .DS_Store
 
+*.vagrant*
