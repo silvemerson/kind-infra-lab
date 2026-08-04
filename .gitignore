@@ -11,3 +11,8 @@ nfs/nfs-data/
 .DS_Store
 
 *.vagrant*
+
+# Ferramentas locais / material de gravação (não faz parte do projeto versionado)
+.claude/
+cue-sheet.md
+roteiro.md

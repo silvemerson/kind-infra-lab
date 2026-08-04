@@ -1,0 +1,18 @@
+# Igual ao manifest/service.yaml do repo do jogo — Service interno normal,
+# quem expõe pra fora é o HTTPRoute (httproute.yaml), não este Service
+# diretamente.
+apiVersion: v1
+kind: Service
+metadata:
+  name: snake-classic
+  namespace: default
+  labels:
+    app: snake-classic
+spec:
+  selector:
+    app: snake-classic
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP

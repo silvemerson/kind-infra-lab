@@ -1,0 +1,60 @@
+# Baseado no manifest/deployment.yaml do próprio repo do jogo
+# (https://github.com/silvemerson/snake-classic), adaptado pro homelab:
+# - image local (buildada e carregada via `kind load docker-image`, sem
+#   registry externo) — por isso imagePullPolicy: IfNotPresent, senão o
+#   kubelet tenta puxar de um registry que não existe;
+# - DATABASE_URL apontando pro PVC montado em /data, pra o placar
+#   (SQLite) sobreviver a reinícios do Pod.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: snake-classic
+  namespace: default
+  labels:
+    app: snake-classic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: snake-classic
+  template:
+    metadata:
+      labels:
+        app: snake-classic
+    spec:
+      containers:
+        - name: snake-classic
+          image: snake-classic:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DATABASE_URL
+              value: "sqlite:////data/scores.db"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: snake-classic-data

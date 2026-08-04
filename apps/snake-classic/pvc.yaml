@@ -1,0 +1,15 @@
+# PVC pro placar (scores.db) do snake-classic. Usa a mesma StorageClass
+# nfs-client provisionada na seção 4 do README — o Pod pode morrer e
+# renascer em qualquer node que o SQLite continua no mesmo lugar (via NFS).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: snake-classic-data
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 256Mi

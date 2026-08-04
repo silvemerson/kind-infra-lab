@@ -1,0 +1,56 @@
+# App de demonstração (traefik/whoami, retorna hostname/headers da request)
+# + HTTPRoute equivalente ao que antes seria um Ingress apontando pra este
+# Service. Hostname de teste: demo.gateway.local (sem DNS real — testado via
+# `curl -H "Host: demo.gateway.local"` contra o IP do Gateway).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-app
+  template:
+    metadata:
+      labels:
+        app: demo-app
+    spec:
+      containers:
+        - name: whoami
+          image: traefik/whoami
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-app
+  namespace: default
+spec:
+  selector:
+    app: demo-app
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: demo-app
+  namespace: default
+spec:
+  parentRefs:
+    - name: nginx-gateway
+      sectionName: http
+  hostnames:
+    - "demo.gateway.local"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: demo-app
+          port: 80

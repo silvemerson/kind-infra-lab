@@ -1,0 +1,22 @@
+# Equivalente ao Ingress que o manifest/ original do jogo não trazia —
+# aqui é isso que expõe o snake-classic pra fora, através do mesmo Gateway
+# criado em gateway-api/gateway.yaml.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: snake-classic
+  namespace: default
+spec:
+  parentRefs:
+    - name: nginx-gateway
+      sectionName: http
+  hostnames:
+    - "snake.gateway.local"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: snake-classic
+          port: 80
