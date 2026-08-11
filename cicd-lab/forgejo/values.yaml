@@ -1,0 +1,61 @@
+# Valores pro chart oficial do Forgejo (OCI: code.forgejo.org/forgejo-helm/forgejo).
+#
+# Bem mais enxuto que o chart do Gitea por padrão: já usa SQLite (não tem
+# nem a opção de subchart de Postgres-HA/Valkey embutida), cache/sessão em
+# memória, fila em "level" e `strategy.type: Recreate` de fábrica — nenhum
+# dos ajustes manuais que precisamos fazer pro Gitea. O Service HTTP
+# também já nasce com ClusterIP de verdade (não headless), então nem
+# precisamos do truque de deletar+recriar Service.
+#
+# As chaves ainda usam o namespace `gitea:` (admin, config) porque esse
+# chart é descendente direto do chart do Gitea — é só a estrutura do
+# values.yaml, não afeta em nada o fato de ser Forgejo rodando.
+
+persistence:
+  enabled: true
+  storageClass: nfs-client
+  size: 5Gi
+
+service:
+  http:
+    type: ClusterIP
+
+# Gateway API HTTPRoute nativo do próprio chart — diferente do Gitea, nem
+# precisa de um httproute.yaml separado, é só habilitar aqui.
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: nginx-gateway
+      namespace: default
+  hostnames:
+    - "forgejo.gateway.local"
+  port: 3000
+
+gitea:
+  admin:
+    username: forgejo_admin
+    # troque antes de aplicar em qualquer ambiente que não seja o seu
+    # homelab local — fica em texto puro aqui só por simplicidade didática.
+    password: "TrocarAntesDeUsar123!"
+    email: "admin@homelab.local"
+  config:
+    server:
+      # mesmo motivo do Gitea: sem isso, alguns campos/links (webhook,
+      # clone_url) usam um placeholder interno em vez do hostname real.
+      ROOT_URL: "http://forgejo.gateway.local/"
+    webhook:
+      # proteção anti-SSRF: por padrão, webhook só pode chamar hosts
+      # "públicos" — bloqueia justamente a chamada interna pro Jenkins.
+      # "private" libera os ranges de rede interna/cluster. No Gitea essa
+      # chave fica em [security]; no Forgejo migrou pra cá, [webhook] —
+      # confirmado pela mensagem de erro ao testar sem isso:
+      # "check your webhook.ALLOWED_HOST_LIST setting".
+      ALLOWED_HOST_LIST: "private"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

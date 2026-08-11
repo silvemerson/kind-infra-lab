@@ -1,0 +1,30 @@
+# Dá pro ServiceAccount usado pelos Pods agente do Jenkins (jenkins-deployer,
+# criado em cicd-lab/jenkins/rbac-deployer.yaml) permissão de atualizar
+# só o Deployment deste namespace — nada além disso. É esse RBAC que
+# permite o `kubectl set image` no último estágio do Jenkinsfile.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deployer
+  namespace: cicd-demo
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jenkins-deployer
+  namespace: cicd-demo
+subjects:
+  - kind: ServiceAccount
+    name: jenkins-deployer
+    namespace: jenkins
+roleRef:
+  kind: Role
+  name: deployer
+  apiGroup: rbac.authorization.k8s.io

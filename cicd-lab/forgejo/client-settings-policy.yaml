@@ -1,0 +1,20 @@
+# Sem isso, o NGINX Gateway Fabric usa o client_max_body_size padrão do
+# NGINX (bem pequeno) — e um push de imagem Docker manda blobs de várias
+# dezenas de MB em requisições PATCH/POST, batendo nesse limite com
+# "413 Request Entity Too Large". maxSize: "0" desliga a checagem de
+# tamanho (registry não tem um teto óbvio de blob).
+#
+# Aplica no Gateway inteiro (não só no HTTPRoute do Forgejo), então também
+# cobre qualquer outra coisa que precise de upload grande no futuro.
+apiVersion: gateway.nginx.org/v1alpha1
+kind: ClientSettingsPolicy
+metadata:
+  name: gateway-body-size
+  namespace: default
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: nginx-gateway
+  body:
+    maxSize: "0"

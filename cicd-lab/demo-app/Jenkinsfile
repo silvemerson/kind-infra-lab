@@ -1,0 +1,101 @@
+// Pipeline: checkout (implícito, via "Pipeline script from SCM") -> testes
+// unitários -> build+push da imagem via Kaniko (sem Docker socket, roda em
+// userspace) -> atualiza o Deployment já existente em cicd-demo.
+//
+// Cada estágio roda num container diferente do MESMO Pod agente (o
+// Kubernetes plugin sobe um Pod só por build, com múltiplos containers —
+// todos compartilham o workspace).
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  serviceAccountName: jenkins-deployer
+  containers:
+    - name: python
+      image: python:3.11-slim
+      command: ["cat"]
+      tty: true
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:debug
+      command: ["cat"]
+      tty: true
+      volumeMounts:
+        - name: docker-config
+          mountPath: /kaniko/.docker
+    - name: kubectl
+      image: bitnami/kubectl:latest
+      command: ["cat"]
+      tty: true
+      # bitnami/kubectl roda non-root (UID 1001) por padrão — diferente
+      # dos outros containers do Pod (root), que são donos dos arquivos no
+      # workspace compartilhado. Sem isso, o container não consegue
+      # escrever no workspace e o step trava esperando um resultado que
+      # nunca é escrito (sem erro visível nenhum).
+      securityContext:
+        runAsUser: 0
+  volumes:
+    - name: docker-config
+      secret:
+        secretName: forgejo-registry-creds
+        items:
+          - key: .dockerconfigjson
+            path: config.json
+'''
+        }
+    }
+
+    environment {
+        // "forgejo.gateway.local" resolve de verdade dentro do cluster
+        // (entrada fixa no CoreDNS + /etc/hosts de cada node do KIND,
+        // apontando pro Gateway — não é só um Host header de curl como no
+        // resto do repo). Sem porta = 80, igual ao ROOT_URL do Forgejo: o
+        // registry usa autenticação por token (padrão OCI), e o servidor
+        // de auth redireciona pro ROOT_URL exato — qualquer host/porta
+        // diferente disso quebra a autenticação do Kaniko. Tudo passa
+        // pelo mesmo Gateway/HTTPRoute que o resto do repo já usa.
+        REGISTRY = "forgejo.gateway.local"
+        IMAGE    = "${REGISTRY}/forgejo_admin/demo-app"
+    }
+
+    stages {
+        stage('Testes unitários') {
+            steps {
+                container('python') {
+                    sh '''
+                        pip install --no-cache-dir -r requirements.txt
+                        pytest -q
+                    '''
+                }
+            }
+        }
+
+        stage('Build e push da imagem') {
+            steps {
+                container('kaniko') {
+                    sh """
+                        /kaniko/executor \
+                          --dockerfile=Dockerfile \
+                          --context=dir://\$(pwd) \
+                          --destination=${IMAGE}:${BUILD_NUMBER} \
+                          --destination=${IMAGE}:latest \
+                          --insecure
+                    """
+                }
+            }
+        }
+
+        stage('Deploy no cicd-demo') {
+            steps {
+                container('kubectl') {
+                    sh """
+                        kubectl set image deployment/demo-app demo-app=${IMAGE}:${BUILD_NUMBER} -n cicd-demo
+                        kubectl rollout status deployment/demo-app -n cicd-demo --timeout=90s
+                    """
+                }
+            }
+        }
+    }
+}
