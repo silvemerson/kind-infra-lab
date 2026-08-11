@@ -1,0 +1,47 @@
+# Deployment "alvo" do pipeline. Aplicado uma vez, ANTES de qualquer build
+# — a imagem começa como um placeholder (nginx:alpine, sem vir do Forgejo)
+# só pra provar que a rota (HTTPRoute) já existe e funciona antes do
+# primeiro `git push`. O Jenkinsfile troca a imagem via `kubectl set
+# image` depois do build — não recria este objeto.
+#
+# De propósito SEM `args`/`command` aqui: `kubectl set image` só troca o
+# campo `image`, nunca `args` — um placeholder que dependesse de args
+# customizados (tipo hashicorp/http-echo com `-listen=:8080`) continuaria
+# usando esses args depois que a imagem virar o demo-app de verdade,
+# quebrando o container (tenta executar o args como se fosse o comando).
+# Por isso o placeholder e a imagem final precisam concordar só na porta
+# (80, a padrão do nginx e a que o Flask do demo-app também usa).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  namespace: cicd-demo
+  labels:
+    app: demo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-app
+  template:
+    metadata:
+      labels:
+        app: demo-app
+    spec:
+      containers:
+        - name: demo-app
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi

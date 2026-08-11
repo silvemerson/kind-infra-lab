@@ -1,0 +1,73 @@
+# Valores pro chart oficial jenkins/jenkins. Ingress do próprio chart fica
+# desligado — quem expõe pra fora é o HTTPRoute (httproute.yaml).
+controller:
+  serviceType: ClusterIP
+  # Só reinstala plugins na primeira vez (usa uma marca dentro do
+  # JENKINS_HOME persistente pra saber se já rodou) — sem isso, TODO
+  # restart do Pod baixa ~60 plugins do zero de novo, porque o diretório
+  # de plugins é emptyDir, não o PVC. Precisa de persistence.enabled=true
+  # (já é o caso, ver abaixo).
+  initializeOnce: true
+  # Todos os plugins declarados aqui (JCasC/values.yaml), não instalados
+  # depois via UI/API — é o jeito mais próximo de produção: o estado
+  # desejado do Jenkins inteiro fica versionado num arquivo só, e subir um
+  # Jenkins novo é só `helm install` de novo, sem passo manual.
+  installPlugins:
+    - kubernetes
+    - configuration-as-code
+    - git
+    # o plugin se chama "gitea" (nome técnico do plugin no Jenkins), mas
+    # fala o mesmo protocolo de webhook que o Forgejo herdou no fork —
+    # funciona igual pros dois.
+    - gitea
+    - workflow-aggregator
+    - credentials-binding
+  JCasC:
+    configScripts:
+      cicd-lab: |
+        jenkins:
+          systemMessage: "Jenkins do cicd-lab (kind-infra-lab) — CI/CD de demonstração"
+        credentials:
+          system:
+            domainCredentials:
+              - credentials:
+                  - usernamePassword:
+                      scope: GLOBAL
+                      id: "forgejo-creds"
+                      username: "${FORGEJO_USER}"
+                      password: "${FORGEJO_PASS}"
+                      description: "Forgejo admin — clone do repo e push no registry"
+  # Credencial injetada via env a partir do Secret jenkins-forgejo-creds
+  # (criado com `kubectl create secret generic jenkins-forgejo-creds ...`,
+  # não versionado em texto puro — ver README do cicd-lab).
+  containerEnv:
+    - name: FORGEJO_USER
+      valueFrom:
+        secretKeyRef:
+          name: jenkins-forgejo-creds
+          key: username
+    - name: FORGEJO_PASS
+      valueFrom:
+        secretKeyRef:
+          name: jenkins-forgejo-creds
+          key: password
+
+persistence:
+  enabled: true
+  storageClass: nfs-client
+  size: 5Gi
+
+# O Kubernetes plugin (instalado acima) já vem configurado pelo próprio
+# chart pra falar com a API do cluster onde ele está rodando — os Pods
+# agente nascem sob demanda, um por build, e morrem no final. Não precisa
+# de nó "agente" fixo.
+agent:
+  enabled: true
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi

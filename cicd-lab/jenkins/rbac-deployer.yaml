@@ -1,0 +1,11 @@
+# ServiceAccount usado pelos Pods agente (o Kubernetes plugin do Jenkins
+# sobe um Pod por build, especificado via podTemplate no Jenkinsfile) —
+# NÃO é a ServiceAccount do controller do Jenkins em si (essa quem cria é
+# o próprio chart, com RBAC restrito a só gerenciar Pods agente).
+# A permissão de deploy no namespace cicd-demo vem do RoleBinding em
+# cicd-lab/manifests/rbac-binding.yaml, que aponta pra esta ServiceAccount.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jenkins-deployer
+  namespace: jenkins
